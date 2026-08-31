@@ -21,7 +21,7 @@ export async function GET(request) {
   }
 
   try {
-    const url = new URL('https://api.themoviedb.org/3/search/movie')
+    const url = new URL('https://api.themoviedb.org/3/search/multi')
     url.searchParams.set('query', query)
     url.searchParams.set('include_adult', 'false')
     url.searchParams.set('language', 'en-GB')
@@ -37,7 +37,7 @@ export async function GET(request) {
 
     if (!response.ok) {
       const body = await response.text()
-      console.error('TMDB search failed:', response.status, body)
+      console.error('TMDB multi-search failed:', response.status, body)
       return NextResponse.json(
         { error: `TMDB search failed (${response.status}).` },
         { status: response.status }
@@ -45,12 +45,16 @@ export async function GET(request) {
     }
 
     const data = await response.json()
-    const results = (data.results || []).slice(0, 10).map((movie) => ({
-      tmdb_id: movie.id,
-      title: movie.title,
-      overview: movie.overview,
-      poster_path: movie.poster_path,
-    }))
+    const results = (data.results || [])
+      .filter((item) => item.media_type === 'movie' || item.media_type === 'tv')
+      .slice(0, 12)
+      .map((item) => ({
+        tmdb_id: item.id,
+        media_type: item.media_type,
+        title: item.media_type === 'tv' ? item.name : item.title,
+        overview: item.overview || '',
+        poster_path: item.poster_path,
+      }))
 
     return NextResponse.json({ results })
   } catch (error) {

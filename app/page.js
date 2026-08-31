@@ -70,16 +70,16 @@ export default function Home() {
     setSaving(true)
     setError('')
 
-    const detailRes = await fetch(`/api/tmdb/movie?id=${selected.tmdb_id}`)
-    const movie = await detailRes.json()
+    const detailRes = await fetch(`/api/tmdb/details?id=${selected.tmdb_id}&type=${selected.media_type}`)
+    const documentary = await detailRes.json()
 
     if (!detailRes.ok) {
-      setError(movie.error || 'Could not load documentary.')
+      setError(documentary.error || 'Could not load documentary.')
       setSaving(false)
       return
     }
 
-    const duplicate = items.some(i => i.tmdb_id === movie.tmdb_id && !i.watched_at)
+    const duplicate = items.some(i => i.tmdb_id === documentary.tmdb_id && i.media_type === documentary.media_type && !i.watched_at)
     if (duplicate) {
       setError('That documentary is already on the watchlist.')
       setSaving(false)
@@ -88,7 +88,7 @@ export default function Home() {
 
     const { error } = await supabase
       .from('documentary_requests')
-      .insert({ ...movie, requested_by: requestedBy })
+      .insert({ ...documentary, requested_by: requestedBy })
 
     if (error) setError(error.message)
     else {
@@ -177,9 +177,9 @@ export default function Home() {
         <div className="searchBox"><Search size={18}/><input autoFocus value={query} onChange={e => { setQuery(e.target.value); setSelected(null) }} placeholder="Search for a documentary…"/></div>
 
         {results.length > 0 && <div className="results">{results.map(r =>
-          <button key={r.tmdb_id} onClick={() => { setSelected(r); setQuery(r.title); setResults([]) }}>
+          <button key={`${r.media_type}-${r.tmdb_id}`} onClick={() => { setSelected(r); setQuery(r.title); setResults([]) }}>
             {r.poster_path ? <img src={`https://image.tmdb.org/t/p/w92${r.poster_path}`} alt=""/> : <div className="miniPoster">🎞️</div>}
-            <span><strong>{r.title}</strong><small>{r.overview || 'No synopsis available.'}</small></span>
+            <span><strong>{r.title}</strong><small>{r.media_type === 'tv' ? 'Series' : 'Film'} · {r.overview || 'No synopsis available.'}</small></span>
           </button>)}
         </div>}
 

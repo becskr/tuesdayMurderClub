@@ -8,9 +8,14 @@ export async function GET(request) {
   const token = getToken()
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
+  const type = searchParams.get('type')
 
   if (!id || !/^\d+$/.test(id)) {
-    return NextResponse.json({ error: 'A valid TMDB movie ID is required.' }, { status: 400 })
+    return NextResponse.json({ error: 'A valid TMDB ID is required.' }, { status: 400 })
+  }
+
+  if (type !== 'movie' && type !== 'tv') {
+    return NextResponse.json({ error: 'Content type must be movie or tv.' }, { status: 400 })
   }
 
   if (!token) {
@@ -21,7 +26,7 @@ export async function GET(request) {
   }
 
   try {
-    const url = new URL(`https://api.themoviedb.org/3/movie/${id}`)
+    const url = new URL(`https://api.themoviedb.org/3/${type}/${id}`)
     url.searchParams.set('language', 'en-GB')
 
     const response = await fetch(url, {
@@ -34,27 +39,31 @@ export async function GET(request) {
 
     if (!response.ok) {
       const body = await response.text()
-      console.error('TMDB movie lookup failed:', response.status, body)
+      console.error('TMDB details lookup failed:', response.status, body)
       return NextResponse.json(
-        { error: `TMDB movie lookup failed (${response.status}).` },
+        { error: `TMDB details lookup failed (${response.status}).` },
         { status: response.status }
       )
     }
 
-    const movie = await response.json()
+    const item = await response.json()
+    const runtime = type === 'tv'
+      ? (Array.isArray(item.episode_run_time) ? item.episode_run_time.find(Boolean) : null)
+      : item.runtime
 
     return NextResponse.json({
-      tmdb_id: movie.id,
-      title: movie.title,
-      overview: movie.overview || '',
-      runtime: movie.runtime || null,
-      rating: movie.vote_average || null,
-      poster_url: movie.poster_path
-        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+      tmdb_id: item.id,
+      media_type: type,
+      title: type === 'tv' ? item.name : item.title,
+      overview: item.overview || '',
+      runtime: runtime || null,
+      rating: item.vote_average || null,
+      poster_url: item.poster_path
+        ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
         : null,
     })
   } catch (error) {
-    console.error('TMDB movie lookup error:', error)
+    console.error('TMDB details lookup error:', error)
     return NextResponse.json(
       { error: 'Could not load documentary details.' },
       { status: 500 }
