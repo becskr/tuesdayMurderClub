@@ -40,9 +40,20 @@ export default function Home() {
     }
 
     const timer = setTimeout(async () => {
-      const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`)
-      const data = await res.json()
-      setResults(data.results || [])
+      try {
+        setError('')
+        const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`)
+        const data = await res.json()
+        if (!res.ok) {
+          setResults([])
+          setError(data.error || 'Could not search for documentaries.')
+          return
+        }
+        setResults(data.results || [])
+      } catch {
+        setResults([])
+        setError('Could not search for documentaries.')
+      }
     }, 300)
 
     return () => clearTimeout(timer)

@@ -1,22 +1,36 @@
 # Tuesday Murder Club
 
-A shared documentary watchlist for Becs, Charlie, Lisa, Ashley and Krishna.
+A shared documentary request list built with Next.js, Supabase and TMDB.
 
-## Set up Supabase
+## Features
 
-Open the SQL Editor in the **Tuesday Murder Club** Supabase project and run `supabase.sql`.
+- Search TMDB for documentaries/movies
+- Fixed requesters: Becs, Charlie, Lisa, Ashley and Krishna
+- Shared watchlist
+- Filter by requester
+- Mark a documentary as watched (moves it to Watched History)
+- Restore watched items
+- Delete requests
+- Duplicate protection for active watchlist items
+- Mobile-first interface
 
-## Environment variables
+## 1. Set up Supabase
 
-Copy `.env.example` to `.env.local` and fill in:
+Open the Supabase SQL Editor for the **Tuesday Murder Club** project and run `supabase.sql`.
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `TMDB_READ_ACCESS_TOKEN`
+## 2. Environment variables
 
-The Supabase publishable key is intended for browser use with RLS enabled. Keep the TMDB token server-side.
+Create `.env.local` locally, or add these variables to your Vercel project settings:
 
-## Run locally
+```text
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+TMDB_ACCESS_TOKEN=your_tmdb_api_read_access_token
+```
+
+`TMDB_ACCESS_TOKEN` is only used in Next.js server routes and should not be exposed as a `NEXT_PUBLIC_` variable.
+
+## 3. Run locally
 
 ```bash
 npm install
@@ -25,17 +39,10 @@ npm run dev
 
 Then open http://localhost:3000.
 
-## Deploy
+## 4. Deploy
 
-Import the project into Vercel and add the same three environment variables in Vercel Project Settings > Environment Variables.
+Deploy the project to Vercel and add the same three environment variables in the Vercel project settings before deploying.
 
-## Features
+## Security
 
-- TMDB autocomplete search
-- Fixed requester list
-- Watchlist + watched history
-- Filter by requester
-- Poster, synopsis, runtime and rating
-- Mark watched / restore
-- Delete mistakes
-- Duplicate prevention for active watchlist items
+`.env.local` is intentionally excluded from Git and from the distributable ZIP. Do not commit the TMDB token to a repository.
