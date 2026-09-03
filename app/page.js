@@ -18,6 +18,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [providers, setProviders] = useState({})
 
   async function load() {
     setLoading(true)
@@ -32,6 +33,33 @@ export default function Home() {
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    const missing = items.filter(item => !providers[`${item.media_type}-${item.tmdb_id}`])
+    if (missing.length === 0) return
+
+    let cancelled = false
+
+    async function loadProviders() {
+      const entries = await Promise.all(missing.map(async item => {
+        const key = `${item.media_type}-${item.tmdb_id}`
+        try {
+          const res = await fetch(`/api/tmdb/providers?id=${item.tmdb_id}&type=${item.media_type}`)
+          if (!res.ok) return [key, { streaming: [], rent: [], buy: [], link: null, unavailable: true }]
+          return [key, await res.json()]
+        } catch {
+          return [key, { streaming: [], rent: [], buy: [], link: null, unavailable: true }]
+        }
+      }))
+
+      if (!cancelled) {
+        setProviders(current => ({ ...current, ...Object.fromEntries(entries) }))
+      }
+    }
+
+    loadProviders()
+    return () => { cancelled = true }
+  }, [items, providers])
 
   useEffect(() => {
     if (!modal || query.trim().length < 2 || selected) {
@@ -156,6 +184,7 @@ export default function Home() {
               <h2>{item.title}</h2>
               <p className="meta">Requested by <strong>{item.requested_by}</strong>{item.runtime ? ` · ${item.runtime} min` : ''}{item.rating ? ` · ★ ${Number(item.rating).toFixed(1)}` : ''}</p>
               <p className="overview">{item.overview || 'No synopsis available.'}</p>
+              <ProviderInfo data={providers[`${item.media_type}-${item.tmdb_id}`]} />
               <div className="actions">
                 <button className="watch" onClick={() => toggleWatched(item)}>
                   {item.watched_at ? <><Undo2 size={16}/> Restore</> : <><Check size={16}/> Mark watched</>}
@@ -193,4 +222,26 @@ export default function Home() {
       </section>
     </div>}
   </main>
+}
+
+
+function ProviderInfo({ data }) {
+  if (!data) return <div className="providers loadingProviders">Checking UK streaming…</div>
+  if (data.unavailable) return <div className="providers subtle">UK streaming availability unavailable.</div>
+
+  const streaming = data.streaming || []
+  const rent = data.rent || []
+  const buy = data.buy || []
+
+  if (streaming.length === 0 && rent.length === 0 && buy.length === 0) {
+    return <div className="providers subtle">No UK streaming availability listed.</div>
+  }
+
+  const names = list => list.map(p => p.name).join(' · ')
+
+  return <div className="providers">
+    {streaming.length > 0 && <div className="providerRow"><strong>Stream in the UK</strong><span>{names(streaming)}</span></div>}
+    {(rent.length > 0 || buy.length > 0) && <div className="providerRow secondary"><strong>Rent / buy</strong><span>{names([...rent, ...buy].filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i))}</span></div>}
+    <small>Streaming data by JustWatch</small>
+  </div>
 }
