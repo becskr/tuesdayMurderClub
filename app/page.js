@@ -19,6 +19,7 @@ export default function Home() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [providers, setProviders] = useState({})
+  const [enrichment, setEnrichment] = useState({})
 
   async function load() {
     setLoading(true)
@@ -33,6 +34,31 @@ export default function Home() {
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    const missing = items.filter(item => !enrichment[`${item.media_type}-${item.tmdb_id}`])
+    if (missing.length === 0) return
+
+    let cancelled = false
+
+    async function loadEnrichment() {
+      const entries = await Promise.all(missing.map(async item => {
+        const key = `${item.media_type}-${item.tmdb_id}`
+        try {
+          const res = await fetch(`/api/tmdb/enrichment?id=${item.tmdb_id}&type=${item.media_type}`)
+          if (!res.ok) return [key, { unavailable: true }]
+          return [key, await res.json()]
+        } catch {
+          return [key, { unavailable: true }]
+        }
+      }))
+
+      if (!cancelled) setEnrichment(current => ({ ...current, ...Object.fromEntries(entries) }))
+    }
+
+    loadEnrichment()
+    return () => { cancelled = true }
+  }, [items, enrichment])
 
   useEffect(() => {
     const missing = items.filter(item => !providers[`${item.media_type}-${item.tmdb_id}`])
@@ -182,7 +208,8 @@ export default function Home() {
             <div className="poster">{item.poster_url ? <img src={item.poster_url} alt=""/> : <span>🎞️</span>}</div>
             <div className="content">
               <h2>{item.title}</h2>
-              <p className="meta">Requested by <strong>{item.requested_by}</strong>{item.runtime ? ` · ${item.runtime} min` : ''}{item.rating ? ` · ★ ${Number(item.rating).toFixed(1)}` : ''}</p>
+              <p className="meta">Requested by <strong>{item.requested_by}</strong><RuntimeInfo item={item} data={enrichment[`${item.media_type}-${item.tmdb_id}`]} />{item.rating ? ` · ★ ${Number(item.rating).toFixed(1)}` : ''}</p>
+              <ContentWarning data={enrichment[`${item.media_type}-${item.tmdb_id}`]} />
               <p className="overview">{item.overview || 'No synopsis available.'}</p>
               <ProviderInfo data={providers[`${item.media_type}-${item.tmdb_id}`]} />
               <div className="actions">
@@ -222,6 +249,26 @@ export default function Home() {
       </section>
     </div>}
   </main>
+}
+
+
+function RuntimeInfo({ item, data }) {
+  if (!data || data.unavailable) return item.runtime ? <> · {item.runtime} min</> : null
+  if (item.media_type === 'tv' && data.episode_count > 1) {
+    return <> · {data.episode_count} episodes{data.average_episode_runtime ? ` · ~${data.average_episode_runtime} min each` : ''}</>
+  }
+  const runtime = data.runtime || item.runtime
+  return runtime ? <> · {runtime} min</> : null
+}
+
+function ContentWarning({ data }) {
+  if (!data?.child_harm_warning) return null
+  const reasons = (data.child_harm_reasons || []).join(' and ')
+  return <div className="contentWarning" role="note">
+    <strong>⚠️ Child harm warning</strong>
+    <span>This documentary may contain {reasons || 'child murder, death or abuse'} content.</span>
+    <small>Automatic warning based on TMDB synopsis/keywords; it may not catch every case.</small>
+  </div>
 }
 
 
