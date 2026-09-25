@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Check, History, Plus, Search, Trash2, Undo2, X } from 'lucide-react'
+import { Check, FolderOpen, History, Plus, Search, Trash2, Undo2, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const PEOPLE = ['Becs', 'Charlie', 'Lisa', 'Ashley', 'Krishna']
@@ -175,59 +175,74 @@ export default function Home() {
     await load()
   }
 
+  const openCount = items.filter(i => !i.watched_at).length
+  const closedCount = items.length - openCount
+
   return <main>
     <header className="topbar">
-      <div>
-        <span className="eyebrow">Tuesday Murder Club</span>
-        <h1>Documentary List</h1>
+      <div className="tape" aria-hidden="true"><span>Crime scene · Do not cross · Crime scene · Do not cross · Crime scene · Do not cross · Crime scene · Do not cross · Crime scene · Do not cross ·</span></div>
+      <div className="topInner">
+        <div>
+          <span className="eyebrow">Est. on Tuesdays · Case files</span>
+          <h1>Tuesday <em>Murder</em> Club</h1>
+          <p className="tally"><span><b>{openCount}</b> open</span><span><b>{closedCount}</b> closed</span></p>
+        </div>
+        <button className="addTop" onClick={() => setModal(true)}><Plus size={18}/> Open a case</button>
       </div>
-      <button className="addTop" onClick={() => setModal(true)}><Plus size={18}/> Add</button>
     </header>
 
     <section className="shell">
       <nav className="tabs">
-        <button className={view === 'watchlist' ? 'active' : ''} onClick={() => setView('watchlist')}>Watchlist</button>
-        <button className={view === 'history' ? 'active' : ''} onClick={() => setView('history')}><History size={16}/> Watched history</button>
+        <button className={view === 'watchlist' ? 'active' : ''} onClick={() => setView('watchlist')}><FolderOpen size={16}/> Open cases</button>
+        <button className={view === 'history' ? 'active' : ''} onClick={() => setView('history')}><History size={16}/> Closed cases</button>
       </nav>
 
       <div className="filters">
-        {['All', ...PEOPLE].map(p => <button key={p} className={filter === p ? 'active' : ''} onClick={() => setFilter(p)}>{p}</button>)}
+        <span className="filterLabel">Filed by</span>
+        {['All', ...PEOPLE].map(p => <button key={p} className={filter === p ? 'active' : ''} onClick={() => setFilter(p)}>
+          {p !== 'All' && <i className="initial">{p[0]}</i>}{p === 'All' ? 'Everyone' : p}
+        </button>)}
       </div>
 
       {error && !modal && <p className="error">{error}</p>}
 
-      {loading ? <div className="empty">Loading…</div> : shown.length === 0 ?
+      {loading ? <div className="empty"><div className="emptyIcon spin">🔍</div><p className="typed">Dusting for prints…</p></div> : shown.length === 0 ?
         <div className="empty">
-          <div className="emptyIcon">🎬</div>
-          <h2>{view === 'watchlist' ? 'Nothing queued yet' : 'No watched documentaries yet'}</h2>
-          <p>{view === 'watchlist' ? 'Add the first documentary suggestion.' : 'Finished documentaries will appear here.'}</p>
-          {view === 'watchlist' && <button className="primary" onClick={() => setModal(true)}><Plus size={18}/> Add documentary</button>}
+          <div className="emptyIcon">{view === 'watchlist' ? '🕵️' : '🗄️'}</div>
+          <h2>{view === 'watchlist' ? 'No open cases. Suspiciously quiet.' : 'The archive is empty'}</h2>
+          <p>{view === 'watchlist' ? 'Somebody file the first documentary before the trail goes cold.' : 'Documentaries you finish will be filed away here.'}</p>
+          {view === 'watchlist' && <button className="primary" onClick={() => setModal(true)}><Plus size={18}/> Open a case</button>}
         </div> :
-        <div className="grid">{shown.map(item =>
-          <article className="card" key={item.id}>
+        <div className="grid">{shown.map((item, index) =>
+          <article className={`card ${item.watched_at ? 'closed' : ''}`} key={item.id} style={{ '--delay': `${Math.min(index, 8) * 60}ms` }}>
             <div className="poster">{item.poster_url ? <img src={item.poster_url} alt=""/> : <span>🎞️</span>}</div>
             <div className="content">
+              <div className="caseLine">
+                <span>Case #{String(item.id).padStart(4, '0')}</span>
+                <span className="filedBy">Filed by {item.requested_by}</span>
+              </div>
               <h2>{item.title}</h2>
-              <p className="meta">Requested by <strong>{item.requested_by}</strong><RuntimeInfo item={item} data={enrichment[`${item.media_type}-${item.tmdb_id}`]} />{item.rating ? ` · ★ ${Number(item.rating).toFixed(1)}` : ''}</p>
+              <p className="meta">{item.media_type === 'tv' ? 'Series' : 'Film'}<RuntimeInfo item={item} data={enrichment[`${item.media_type}-${item.tmdb_id}`]} />{item.rating ? <> · <span className="rating">★ {Number(item.rating).toFixed(1)}</span></> : ''}{item.watched_at ? ` · Closed ${new Date(item.watched_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</p>
               <ContentWarning data={enrichment[`${item.media_type}-${item.tmdb_id}`]} />
               <p className="overview">{item.overview || 'No synopsis available.'}</p>
               <ProviderInfo data={providers[`${item.media_type}-${item.tmdb_id}`]} />
               <div className="actions">
                 <button className="watch" onClick={() => toggleWatched(item)}>
-                  {item.watched_at ? <><Undo2 size={16}/> Restore</> : <><Check size={16}/> Mark watched</>}
+                  {item.watched_at ? <><Undo2 size={16}/> Reopen case</> : <><Check size={16}/> Case closed</>}
                 </button>
-                <button className="iconBtn" onClick={() => remove(item)} title="Delete"><Trash2 size={17}/></button>
+                <button className="iconBtn" onClick={() => remove(item)} title="Delete" aria-label={`Delete ${item.title}`}><Trash2 size={17}/></button>
               </div>
             </div>
+            <span className="stamp" aria-hidden="true">{item.watched_at ? 'Solved' : 'Unsolved'}</span>
           </article>)}
         </div>}
     </section>
 
     {modal && <div className="backdrop" onMouseDown={closeModal}>
       <section className="modal" onMouseDown={e => e.stopPropagation()}>
-        <button className="close" onClick={closeModal}><X/></button>
-        <span className="eyebrow">New suggestion</span>
-        <h2>Add a documentary</h2>
+        <button className="close" onClick={closeModal} aria-label="Close"><X/></button>
+        <span className="eyebrow">New case file</span>
+        <h2>What are we investigating?</h2>
 
         <label>Documentary</label>
         <div className="searchBox"><Search size={18}/><input autoFocus value={query} onChange={e => { setQuery(e.target.value); setSelected(null) }} placeholder="Search for a documentary…"/></div>
@@ -239,13 +254,13 @@ export default function Home() {
           </button>)}
         </div>}
 
-        <label>Requested by</label>
+        <label>Filed by</label>
         <select value={requestedBy} onChange={e => setRequestedBy(e.target.value)}>
           {PEOPLE.map(p => <option key={p}>{p}</option>)}
         </select>
 
         {error && <p className="error">{error}</p>}
-        <button className="primary full" disabled={!selected || saving} onClick={addRequest}>{saving ? 'Adding…' : 'Add to watchlist'}</button>
+        <button className="primary full" disabled={!selected || saving} onClick={addRequest}>{saving ? 'Filing…' : 'File the case'}</button>
       </section>
     </div>}
   </main>
@@ -273,7 +288,7 @@ function ContentWarning({ data }) {
 
 
 function ProviderInfo({ data }) {
-  if (!data) return <div className="providers loadingProviders">Checking UK streaming…</div>
+  if (!data) return <div className="providers loadingProviders">Tracing UK streaming…</div>
   if (data.unavailable) return <div className="providers subtle">UK streaming availability unavailable.</div>
 
   const streaming = data.streaming || []
