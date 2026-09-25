@@ -10,6 +10,7 @@ export default function Home() {
   const [items, setItems] = useState([])
   const [view, setView] = useState('watchlist')
   const [filter, setFilter] = useState('All')
+  const [absent, setAbsent] = useState([])
   const [modal, setModal] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -116,8 +117,20 @@ export default function Home() {
   const shown = useMemo(() => items.filter(item => {
     const inView = view === 'watchlist' ? !item.watched_at : !!item.watched_at
     const byPerson = filter === 'All' || item.requested_by === filter
-    return inView && byPerson
-  }), [items, view, filter])
+    const present = view !== 'watchlist' || !absent.includes(item.requested_by)
+    return inView && byPerson && present
+  }), [items, view, filter, absent])
+
+  const hiddenCount = view === 'watchlist'
+    ? items.filter(i => !i.watched_at && absent.includes(i.requested_by) && (filter === 'All' || i.requested_by === filter)).length
+    : 0
+
+  function toggleAbsent(person) {
+    setAbsent(current => current.includes(person) ? current.filter(p => p !== person) : [...current, person])
+    if (filter === person) setFilter('All')
+  }
+
+  const listNames = names => names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 
   async function addRequest() {
     if (!selected) return
@@ -204,13 +217,23 @@ export default function Home() {
         </button>)}
       </div>
 
+      {view === 'watchlist' && <div className="filters absentRow">
+        <span className="filterLabel">Missing tonight</span>
+        {PEOPLE.map(p => <button key={p} className={absent.includes(p) ? 'absent' : ''} aria-pressed={absent.includes(p)} onClick={() => toggleAbsent(p)} title={absent.includes(p) ? `${p} is back in` : `Hide ${p}'s picks`}>
+          <i className="initial">{absent.includes(p) ? '✕' : p[0]}</i>{p}
+        </button>)}
+        {absent.length > 0 && <button className="clearAbsent" onClick={() => setAbsent([])}>Everyone's here</button>}
+      </div>}
+
+      {view === 'watchlist' && hiddenCount > 0 && <p className="hiddenNote">Hiding {hiddenCount} {hiddenCount === 1 ? 'pick' : 'picks'} from {listNames(absent)} while they're away.</p>}
+
       {error && !modal && <p className="error">{error}</p>}
 
       {loading ? <div className="empty"><div className="emptyIcon spin">🔍</div><p className="typed">Dusting for prints…</p></div> : shown.length === 0 ?
         <div className="empty">
           <div className="emptyIcon">{view === 'watchlist' ? '🕵️' : '🗄️'}</div>
-          <h2>{view === 'watchlist' ? 'No open cases. Suspiciously quiet.' : 'The archive is empty'}</h2>
-          <p>{view === 'watchlist' ? 'Somebody file the first documentary before the trail goes cold.' : 'Documentaries you finish will be filed away here.'}</p>
+          <h2>{view !== 'watchlist' ? 'The archive is empty' : hiddenCount > 0 ? 'No cases left for tonight' : 'No open cases. Suspiciously quiet.'}</h2>
+          <p>{view !== 'watchlist' ? 'Documentaries you finish will be filed away here.' : hiddenCount > 0 ? `Every open case was filed by ${listNames(absent)}. Save them for when they're back.` : 'Somebody file the first documentary before the trail goes cold.'}</p>
           {view === 'watchlist' && <button className="primary" onClick={() => setModal(true)}><Plus size={18}/> Open a case</button>}
         </div> :
         <div className="grid">{shown.map((item, index) =>

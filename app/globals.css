@@ -66,6 +66,13 @@ button{font-family:inherit}
 .initial{font-style:normal;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#2b2621;color:var(--text);font-family:var(--display);font-size:12px;font-weight:700}
 .filters button.active .initial{background:var(--red);color:#fff}
 
+/* missing tonight */
+.absentRow{margin-top:-8px}
+.filters button.absent{border-color:rgba(227,38,63,.55);background:rgba(200,16,46,.12);color:var(--faint);text-decoration:line-through;text-decoration-color:var(--red-hot)}
+.filters button.absent .initial{background:var(--red);color:#fff;font-family:var(--body);font-size:11px}
+.filters button.clearAbsent{padding-left:13px;border-style:dashed;color:var(--muted)}
+.hiddenNote{margin:-6px 0 18px;font-family:var(--type);font-size:13px;letter-spacing:.04em;color:var(--amber)}
+
 /* ---------- case cards ---------- */
 .grid{display:grid;gap:18px}
 .card{position:relative;display:grid;grid-template-columns:140px 1fr;background:linear-gradient(135deg,var(--card-2),var(--card));border:1px solid var(--line);border-radius:6px;overflow:hidden;
