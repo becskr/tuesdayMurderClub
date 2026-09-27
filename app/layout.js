@@ -7,7 +7,12 @@ const body = Inter({ subsets: ['latin'], variable: '--font-body' })
 
 export const metadata = {
   title: 'Tuesday Murder Club',
-  description: 'A shared documentary watchlist.'
+  description: 'A shared documentary watchlist.',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: { index: false, follow: false }
+  }
 }
 
 export const viewport = {
