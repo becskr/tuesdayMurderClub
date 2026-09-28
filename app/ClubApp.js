@@ -49,6 +49,8 @@ export default function ClubApp({ mode = 'edit' }) {
   }, [mode])
 
   const canEdit = mode === 'edit' && editor === true
+  // /view can open the add form to show it off, but can't submit it.
+  const canOpenForm = canEdit || mode === 'view'
 
   async function unlock(event) {
     event.preventDefault()
@@ -236,7 +238,10 @@ export default function ClubApp({ mode = 'edit' }) {
           <button className="addTop" onClick={() => setModal(true)}><Plus size={18}/> Open a case</button>
           <button className="lockBtn" onClick={lock}><Lock size={13}/> Lock editing</button>
         </div>}
-        {mode === 'view' && <span className="viewBadge"><Eye size={15}/> View only</span>}
+        {mode === 'view' && <div className="editTools">
+          <button className="addTop" onClick={() => setModal(true)}><Plus size={18}/> Open a case</button>
+          <span className="viewBadge"><Eye size={15}/> View only</span>
+        </div>}
       </div>
     </header>
 
@@ -278,7 +283,7 @@ export default function ClubApp({ mode = 'edit' }) {
           <h2>{noneSelected ? 'No one selected' : hiddenCount > 0 ? 'Nothing from this lot' : view !== 'watchlist' ? 'The archive is empty' : 'No open cases. Suspiciously quiet.'}</h2>
           <p>{noneSelected ? 'Pick at least one name to see their cases.' : hiddenCount > 0 ? 'Everything here was filed by someone you’ve deselected.' : view !== 'watchlist' ? 'Documentaries you finish will be filed away here.' : 'Somebody file the first documentary before the trail goes cold.'}</p>
           {noneSelected && <button className="primary" onClick={() => setIncluded(PEOPLE)}>Select all</button>}
-          {canEdit && view === 'watchlist' && !noneSelected && hiddenCount === 0 && <button className="primary" onClick={() => setModal(true)}><Plus size={18}/> Open a case</button>}
+          {canOpenForm && view === 'watchlist' && !noneSelected && hiddenCount === 0 && <button className="primary" onClick={() => setModal(true)}><Plus size={18}/> Open a case</button>}
         </div> :
         <div className="grid">{shown.map((item, index) =>
           <article className={`card ${item.watched_at ? 'closed' : ''}`} key={item.id} style={{ '--delay': `${Math.min(index, 8) * 60}ms` }}>
@@ -305,7 +310,7 @@ export default function ClubApp({ mode = 'edit' }) {
         </div>}
     </section>
 
-    {canEdit && modal && <div className="backdrop" onMouseDown={closeModal}>
+    {canOpenForm && modal && <div className="backdrop" onMouseDown={closeModal}>
       <section className="modal" onMouseDown={e => e.stopPropagation()}>
         <button className="close" onClick={closeModal} aria-label="Close"><X/></button>
         <span className="eyebrow">New case file</span>
@@ -327,7 +332,8 @@ export default function ClubApp({ mode = 'edit' }) {
         </select>
 
         {error && <p className="error">{error}</p>}
-        <button className="primary full" disabled={!selected || saving} onClick={addRequest}>{saving ? 'Filing…' : 'File the case'}</button>
+        <button className="primary full" disabled={!canEdit || !selected || saving} onClick={addRequest}>{saving ? 'Filing…' : 'File the case'}</button>
+        {!canEdit && <p className="formNote"><Eye size={14}/> This is the view-only link, so filing is switched off.</p>}
       </section>
     </div>}
   </main>
