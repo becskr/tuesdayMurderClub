@@ -46,3 +46,18 @@ Deploy the project to Vercel and add the same three environment variables in the
 ## Security
 
 `.env.local` is intentionally excluded from Git and from the distributable ZIP. Do not commit the TMDB token to a repository.
+
+## Editing and the read-only view (V5)
+
+- `/` is the club's page. It shows everything, and asks for the club passcode once per device before anyone can add, close, reopen or delete cases. "Lock editing" signs that device out.
+- `/view` is read-only for everyone. Share this link with people who should only look.
+
+### Setup
+
+1. In Vercel, add two environment variables (Production, and Preview if you use it):
+   - `EDIT_PASSCODE`: the passcode the club will type in.
+   - `SUPABASE_SECRET_KEY`: the secret key from Supabase → Project Settings → API Keys. Never prefix it with `NEXT_PUBLIC_`.
+2. Deploy.
+3. Run `supabase-migration-v5-readonly.sql` in the Supabase SQL editor. Until you do, the public key can still write directly to the table.
+
+Changing `EDIT_PASSCODE` signs every device out.

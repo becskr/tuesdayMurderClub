@@ -40,24 +40,5 @@ on public.documentary_requests for select
 to anon, authenticated
 using (true);
 
-create policy "Anyone can add documentary requests"
-on public.documentary_requests for insert
-to anon, authenticated
-with check (
-  requested_by in ('Becs','Charlie','Lisa','Ashley','Krishna')
-  and media_type in ('movie','tv')
-);
-
-create policy "Anyone can update documentary requests"
-on public.documentary_requests for update
-to anon, authenticated
-using (true)
-with check (
-  requested_by in ('Becs','Charlie','Lisa','Ashley','Krishna')
-  and media_type in ('movie','tv')
-);
-
-create policy "Anyone can delete documentary requests"
-on public.documentary_requests for delete
-to anon, authenticated
-using (true);
+-- Writes go through the app's server routes (secret key + club passcode).
+-- The public key is read-only. See supabase-migration-v5-readonly.sql.
