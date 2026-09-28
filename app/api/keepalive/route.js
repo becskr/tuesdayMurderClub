@@ -13,7 +13,7 @@ export async function GET(request) {
   );
 
   const { error } = await supabase
-    .from("documentaries")
+    .from("documentary_requests")
     .select("id")
     .limit(1);
 

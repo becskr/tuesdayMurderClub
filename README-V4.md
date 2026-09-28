@@ -18,7 +18,7 @@ TMDB does not provide a dedicated parental/content-trigger flag for child murder
 
 ## V4.1: Supabase keep-alive
 
-This package adds a Vercel Cron endpoint at `/api/keepalive`. Once per day it performs a harmless one-row read from the `documentaries` table.
+This package adds a Vercel Cron endpoint at `/api/keepalive`. Once per day it performs a harmless one-row read from the `documentary_requests` table.
 
 In Vercel, add an environment variable named `CRON_SECRET` with a long random value. Do not put that value in this repository. Vercel will send it as a Bearer token when invoking the cron endpoint.
 
