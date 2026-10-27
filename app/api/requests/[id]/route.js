@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { isEditor } from '../../../../lib/editorAuth'
-import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
+import { deleteRequest, setWatched } from '../../../../lib/requests'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,20 +26,16 @@ export async function PATCH(request, { params }) {
   }
 
   try {
-    const { error } = await supabaseAdmin()
-      .from('documentary_requests')
-      .update({ watched_at: body.watched ? new Date().toISOString() : null })
-      .eq('id', id)
-
-    if (error?.code === '23505') {
+    const result = await setWatched(id, body.watched)
+    if (result === 'duplicate') {
       return NextResponse.json({ error: 'That documentary is already open on the watchlist.' }, { status: 409 })
     }
-    if (error) {
-      console.error('Update failed:', error)
-      return NextResponse.json({ error: 'Could not update the case.' }, { status: 500 })
+    if (result === 'missing') {
+      return NextResponse.json({ error: 'That case no longer exists.' }, { status: 404 })
     }
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Update failed:', error)
+    return NextResponse.json({ error: 'Could not update the case.' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })
@@ -50,13 +46,10 @@ export async function DELETE(request, { params }) {
   if (response) return response
 
   try {
-    const { error } = await supabaseAdmin().from('documentary_requests').delete().eq('id', id)
-    if (error) {
-      console.error('Delete failed:', error)
-      return NextResponse.json({ error: 'Could not delete the case.' }, { status: 500 })
-    }
+    await deleteRequest(id)
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Delete failed:', error)
+    return NextResponse.json({ error: 'Could not delete the case.' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })

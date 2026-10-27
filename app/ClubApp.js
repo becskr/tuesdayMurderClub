@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Eye, FolderOpen, History, Lock, Plus, Search, Trash2, Undo2, X } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import { PEOPLE } from '../lib/people'
 
 // mode 'edit': the club's page. Editing needs the passcode once per device.
@@ -28,13 +27,14 @@ export default function ClubApp({ mode = 'edit' }) {
 
   async function load() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('documentary_requests')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) setError(error.message)
-    else setItems(data || [])
+    try {
+      const res = await fetch('/api/requests', { cache: 'no-store' })
+      const data = await res.json()
+      if (res.ok) setItems(data.items || [])
+      else setError(data.error || 'Could not load the case files.')
+    } catch {
+      setError('Could not load the case files.')
+    }
     setLoading(false)
   }
 
