@@ -1,63 +1,105 @@
 # Tuesday Murder Club
 
-A shared documentary request list built with Next.js, Supabase and TMDB.
+A shared documentary watchlist for the club, built with Next.js, MySQL/MariaDB and TMDB. It runs as a Node.js app on Krystal cPanel hosting.
 
 ## Features
 
-- Search TMDB for documentaries/movies
-- Fixed requesters: Becs, Charlie, Lisa, Ashley and Krishna
-- Shared watchlist
-- Filter by requester
-- Mark a documentary as watched (moves it to Watched History)
-- Restore watched items
-- Delete requests
-- Duplicate protection for active watchlist items
-- Mobile-first interface
+- Search TMDB for documentaries and series
+- Fixed members: Becs, Charlie, Lisa, Ashley and Krishna
+- Open cases (watchlist) and closed cases (watched history)
+- Include or exclude members' picks with the name filter
+- UK streaming availability (via TMDB/JustWatch), runtimes and episode counts
+- Automatic child-harm content warning from TMDB synopsis and keywords. TMDB has no dedicated flag for this, so it can miss content its metadata doesn't mention, and the page says so.
+- Passcode-protected editing on `/`, read-only page at `/view`
+- One open case per documentary
 
-## 1. Set up Supabase
+## How it fits together
 
-Open the Supabase SQL Editor for the **Tuesday Murder Club** project and run `supabase.sql`.
+- **Browser:** reads the list from `GET /api/requests`. It never talks to the database directly.
+- **Server routes:** `/api/requests` (list, add) and `/api/requests/[id]` (close, reopen, delete). Changes need the editor cookie, which `/api/editor` sets when the right passcode is entered.
+- **Database:** one MySQL table, `documentary_requests` (see `mysql/schema.sql`). The connection details only exist on the server.
+- **TMDB:** search, details, streaming and content-warning lookups go through `/api/tmdb/*` so the token stays on the server.
 
-## 2. Environment variables
+## Environment variables
 
-Create `.env.local` locally, or add these variables to your Vercel project settings:
+Set these in cPanel → Setup Node.js App → your app → Environment variables (or `.env.local` for local development). All of them are secret; none start with `NEXT_PUBLIC_`.
 
-```text
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
-TMDB_ACCESS_TOKEN=your_tmdb_api_read_access_token
-```
+| Variable | What it is |
+|---|---|
+| `DB_NAME` | The database name, e.g. `krystaluser_tmc` |
+| `DB_USER` | The database user, e.g. `krystaluser_tmc` |
+| `DB_PASSWORD` | That user's password |
+| `DB_HOST` | Optional, defaults to `localhost` |
+| `TMDB_ACCESS_TOKEN` | TMDB API read access token |
+| `EDIT_PASSCODE` | The club passcode. Changing it signs every device out. |
 
-`TMDB_ACCESS_TOKEN` is only used in Next.js server routes and should not be exposed as a `NEXT_PUBLIC_` variable.
+Don't add `NODE_ENV` yourself: setting the app to Production mode in cPanel does that.
 
-## 3. Run locally
+## First-time setup on Krystal
+
+### 1. Database
+
+1. cPanel → **Manage My Databases** (or **MySQL Databases**): create a database (e.g. `tmc`) and a user with a long password. cPanel adds your account name as a prefix, so note the full names.
+2. On the same page, add the user to the database with **All Privileges**.
+3. cPanel → **phpMyAdmin** → pick the database → **SQL** tab → paste the contents of `mysql/schema.sql` → **Go**.
+
+### 2. Bring the data over from Supabase
+
+1. In the Supabase dashboard, resume the project if it's paused.
+2. Table Editor → `documentary_requests` → **Export** → **Export table as CSV**.
+3. Convert it (needs Node, no packages):
+   ```bash
+   node scripts/supabase-csv-to-mysql.mjs ~/Downloads/documentary_requests_rows.csv > data.sql
+   ```
+4. phpMyAdmin → your database → **SQL** tab → paste `data.sql` → **Go**. Case numbers stay the same, and new cases carry on from the highest one.
+
+`data.sql` and `*.csv` are git-ignored so the export doesn't end up in GitHub.
+
+### 3. Website address
+
+cPanel → **Domains**: add the domain or subdomain the app will live on (e.g. `tmc.yourdomain.co.uk`). Krystal issues the SSL certificate automatically; it can take a little while.
+
+### 4. Code
+
+cPanel → **Git Version Control** → **Create** → clone `https://github.com/becskr/tuesdayMurderClub.git` into a folder outside `public_html`, e.g. `tuesdayMurderClub`.
+
+If the code you want is on a branch other than `main`, open the repo in Git Version Control → **Basic Information** → **Checked-Out Branch**, pick it, and click **Update**.
+
+### 5. Node.js app
+
+1. cPanel → **Setup Node.js App** → **Create Application**:
+   - Node.js version: the newest one offered (20 or later)
+   - Application mode: Production
+   - Application root: `tuesdayMurderClub`
+   - Application URL: the domain from step 3
+   - Application startup file: `server.js`
+   - Environment variables: everything in the table above
+2. Click **Create**, then **Run NPM Install** and wait for it to finish.
+3. Click **Run JS Script**, type `build` and confirm. This takes a few minutes. It builds with Webpack because the server's Linux is too old for Next.js's faster Turbopack builder.
+4. Click **Restart**. Open the site and check that the list loads, the passcode unlocks editing, and you can add and close a case.
+
+## Updating the live site
+
+Push to GitHub as usual, then in cPanel:
+
+1. **Git Version Control** → the repo → **Pull or Deploy** → **Update from Remote**.
+2. **Setup Node.js App** → the app → **Run NPM Install**, then **Run JS Script** with `build`, then **Restart**.
+
+If SSH is switched on (Krystal Client Area → My Products & Services → your package → Enable SSH; port 722), `scripts/deploy.sh` does all of this in one go after you run the `source …/activate` command shown on the app's page.
+
+## Running locally
+
+Needs Node 20+ and a MySQL or MariaDB database with `mysql/schema.sql` applied. Put the environment variables in `.env.local`, then:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Then open http://localhost:3000.
+## Troubleshooting
 
-## 4. Deploy
-
-Deploy the project to Vercel and add the same three environment variables in the Vercel project settings before deploying.
-
-## Security
-
-`.env.local` is intentionally excluded from Git and from the distributable ZIP. Do not commit the TMDB token to a repository.
-
-## Editing and the read-only view (V5)
-
-- `/` is the club's page. It shows everything, and asks for the club passcode once per device before anyone can add, close, reopen or delete cases. "Lock editing" signs that device out.
-- `/view` is read-only for everyone. Share this link with people who should only look.
-
-### Setup
-
-1. In Vercel, add two environment variables (Production, and Preview if you use it):
-   - `EDIT_PASSCODE`: the passcode the club will type in.
-   - `SUPABASE_SECRET_KEY`: the secret key from Supabase → Project Settings → API Keys. Never prefix it with `NEXT_PUBLIC_`.
-2. Deploy.
-3. Run `supabase-migration-v5-readonly.sql` in the Supabase SQL editor. Until you do, the public key can still write directly to the table.
-
-Changing `EDIT_PASSCODE` signs every device out.
+- **Site shows a Passenger or 503 error:** check the log file set in Setup Node.js App, make sure the `build` script finished, then Restart.
+- **"Turbopack is not supported on this platform":** the build script must be `next build --webpack` (it is in `package.json`). Asking Krystal to move the account to a CloudLinux 8 server would also fix it, and makes builds faster.
+- **"Could not load the case files":** the database variables are wrong or the user isn't added to the database.
+- **Build stops with "Killed" or out of memory:** shared hosting caps memory per account. Try again when the site is quiet, or ask Krystal support whether the limit can be raised for the build.
+- **Krystal's Node.js support** covers the Node service itself, not app code, and Krystal recommends a VPS for heavy production Node apps. This app is small, but if it outgrows shared hosting, the same setup works on a VPS.
