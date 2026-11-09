@@ -32,7 +32,8 @@ Set these in cPanel → Setup Node.js App → your app → Environment variables
 | `DB_HOST` | Optional, defaults to `localhost` |
 | `TMDB_ACCESS_TOKEN` | TMDB API read access token |
 | `EDIT_PASSCODE` | The club passcode. Changing it signs every device out. |
-| `NODE_ENV` | `production` |
+
+Don't add `NODE_ENV` yourself: setting the app to Production mode in cPanel does that.
 
 ## First-time setup on Krystal
 
@@ -62,6 +63,8 @@ cPanel → **Domains**: add the domain or subdomain the app will live on (e.g. `
 
 cPanel → **Git Version Control** → **Create** → clone `https://github.com/becskr/tuesdayMurderClub.git` into a folder outside `public_html`, e.g. `tuesdayMurderClub`.
 
+If the code you want is on a branch other than `main`, open the repo in Git Version Control → **Basic Information** → **Checked-Out Branch**, pick it, and click **Update**.
+
 ### 5. Node.js app
 
 1. cPanel → **Setup Node.js App** → **Create Application**:
@@ -71,24 +74,18 @@ cPanel → **Git Version Control** → **Create** → clone `https://github.com/
    - Application URL: the domain from step 3
    - Application startup file: `server.js`
    - Environment variables: everything in the table above
-2. Click **Create**, then **Run NPM Install**.
-3. Copy the `source …/activate` command shown at the top of the app's page. Open cPanel → **Terminal** (or SSH in), paste it, then run:
-   ```bash
-   cd ~/tuesdayMurderClub
-   npm run build
-   ```
-4. Back in Setup Node.js App, click **Restart**. Open the site and check that the list loads, the passcode unlocks editing, and you can add and close a case.
+2. Click **Create**, then **Run NPM Install** and wait for it to finish.
+3. Click **Run JS Script**, type `build` and confirm. This takes a few minutes. It builds with Webpack because the server's Linux is too old for Next.js's faster Turbopack builder.
+4. Click **Restart**. Open the site and check that the list loads, the passcode unlocks editing, and you can add and close a case.
 
 ## Updating the live site
 
-Push to GitHub as usual, then in cPanel Terminal:
+Push to GitHub as usual, then in cPanel:
 
-```bash
-source /home/…/activate        # the command from Setup Node.js App
-~/tuesdayMurderClub/scripts/deploy.sh
-```
+1. **Git Version Control** → the repo → **Pull or Deploy** → **Update from Remote**.
+2. **Setup Node.js App** → the app → **Run NPM Install**, then **Run JS Script** with `build`, then **Restart**.
 
-It pulls the latest code, installs packages, builds, and restarts the app.
+If SSH is switched on (Krystal Client Area → My Products & Services → your package → Enable SSH; port 722), `scripts/deploy.sh` does all of this in one go after you run the `source …/activate` command shown on the app's page.
 
 ## Running locally
 
@@ -101,7 +98,8 @@ npm run dev
 
 ## Troubleshooting
 
-- **Site shows a Passenger or 503 error:** check the log file set in Setup Node.js App, make sure `npm run build` finished, then Restart.
+- **Site shows a Passenger or 503 error:** check the log file set in Setup Node.js App, make sure the `build` script finished, then Restart.
+- **"Turbopack is not supported on this platform":** the build script must be `next build --webpack` (it is in `package.json`). Asking Krystal to move the account to a CloudLinux 8 server would also fix it, and makes builds faster.
 - **"Could not load the case files":** the database variables are wrong or the user isn't added to the database.
 - **Build stops with "Killed" or out of memory:** shared hosting caps memory per account. Try again when the site is quiet, or ask Krystal support whether the limit can be raised for the build.
 - **Krystal's Node.js support** covers the Node service itself, not app code, and Krystal recommends a VPS for heavy production Node apps. This app is small, but if it outgrows shared hosting, the same setup works on a VPS.
