@@ -9,7 +9,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   if (!process.env.EDIT_PASSCODE) {
-    return NextResponse.json({ error: 'Editing isn’t set up yet: add EDIT_PASSCODE to the app's environment variables.' }, { status: 500 })
+    return NextResponse.json({ error: 'Editing isn’t set up yet: add EDIT_PASSCODE to the app’s environment variables.' }, { status: 500 })
   }
 
   let body = {}
