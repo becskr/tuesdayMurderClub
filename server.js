@@ -1,5 +1,8 @@
 // Startup file for cPanel's "Setup Node.js App" (Phusion Passenger).
 // Passenger sets PORT; run `npm run build` before starting.
+// Always run in production mode, whatever cPanel's app mode sets.
+process.env.NODE_ENV = 'production'
+
 const { createServer } = require('http')
 const next = require('next')
 

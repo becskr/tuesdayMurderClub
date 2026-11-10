@@ -99,6 +99,7 @@ npm run dev
 ## Troubleshooting
 
 - **Site shows a Passenger or 503 error:** check the log file set in Setup Node.js App, make sure the `build` script finished, then Restart.
+- **Build fails prerendering `/_global-error` with "Cannot read properties of null (reading 'useContext')", or warns about a non-standard `NODE_ENV`:** the build ran in development mode. `scripts/build.js` and `server.js` force production mode; also set the app to **Production** in Setup Node.js App and remove any `NODE_ENV` variable.
 - **`spawn … EAGAIN` during "Collecting page data":** the build hit the hosting's process limit. `next.config.js` limits the build to one worker; if it still happens, stop the app before building so its processes don't count against the limit.
 - **"Turbopack is not supported on this platform":** the build script must be `next build --webpack` (it is in `package.json`). Asking Krystal to move the account to a CloudLinux 8 server would also fix it, and makes builds faster.
 - **"Could not load the case files":** the database variables are wrong or the user isn't added to the database.
