@@ -36,6 +36,18 @@ Set these in cPanel → Setup Node.js App → your app → Environment variables
 
 Don't add `NODE_ENV` yourself: setting the app to Production mode in cPanel does that.
 
+If the app says a variable isn't set even though it's in Setup Node.js App (some cPanel servers don't pass them through), put them in a file called `.env` in the app folder on Krystal instead, one per line:
+
+```text
+EDIT_PASSCODE=your passcode
+DB_NAME=krystaluser_tmc
+DB_USER=krystaluser_tmc
+DB_PASSWORD=the database password
+TMDB_ACCESS_TOKEN=your TMDB token
+```
+
+Create it with File Manager (tick "Show Hidden Files" in Settings to see it afterwards), then Restart the app. Git ignores it, so it's never uploaded or overwritten.
+
 ## First-time setup on Krystal
 
 ### 1. Database
