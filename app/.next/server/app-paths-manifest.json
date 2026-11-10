@@ -4,6 +4,7 @@
   "/api/editor/route": "app/api/editor/route.js",
   "/api/requests/[id]/route": "app/api/requests/[id]/route.js",
   "/api/requests/route": "app/api/requests/route.js",
+  "/api/status/route": "app/api/status/route.js",
   "/api/tmdb/details/route": "app/api/tmdb/details/route.js",
   "/api/tmdb/enrichment/route": "app/api/tmdb/enrichment/route.js",
   "/api/tmdb/providers/route": "app/api/tmdb/providers/route.js",

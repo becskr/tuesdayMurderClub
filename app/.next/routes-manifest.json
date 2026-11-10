@@ -74,6 +74,12 @@
       "namedRegex": "^/api/requests(?:/)?$"
     },
     {
+      "page": "/api/status",
+      "regex": "^/api/status(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/status(?:/)?$"
+    },
+    {
       "page": "/api/tmdb/details",
       "regex": "^/api/tmdb/details(?:/)?$",
       "routeKeys": {},

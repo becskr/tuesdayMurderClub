@@ -4,6 +4,7 @@
   "/api/editor/route": "/api/editor",
   "/api/requests/[id]/route": "/api/requests/[id]",
   "/api/requests/route": "/api/requests",
+  "/api/status/route": "/api/status",
   "/api/tmdb/details/route": "/api/tmdb/details",
   "/api/tmdb/enrichment/route": "/api/tmdb/enrichment",
   "/api/tmdb/providers/route": "/api/tmdb/providers",
