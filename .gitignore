@@ -4,3 +4,5 @@
 /.next/
 /tmp/
 /*.log
+# Settings and secrets for the live app; created in File Manager.
+/.env
