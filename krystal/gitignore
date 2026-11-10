@@ -1,0 +1,6 @@
+# Only for the krystal-build branch. Patterns start with / so they don't
+# hide app/node_modules or app/.next, which the app needs.
+/node_modules
+/.next/
+/tmp/
+/*.log

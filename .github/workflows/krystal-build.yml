@@ -1,0 +1,74 @@
+name: Build for Krystal
+
+# Builds the app on GitHub (Krystal's shared hosting can't build Next.js:
+# its Linux is too old for the native compiler and it runs out of memory)
+# and commits a ready-to-run copy to the krystal-build branch.
+on:
+  push:
+    branches: [main, move-to-krystal]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: krystal-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install packages
+        run: npm install --no-audit --no-fund
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+
+      - name: Check out the krystal-build branch
+        run: |
+          if git ls-remote --exit-code --heads origin krystal-build >/dev/null; then
+            git clone --quiet --depth 1 --branch krystal-build \
+              "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" deploy
+          else
+            git init --quiet -b krystal-build deploy
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Replace its contents with this build
+        run: |
+          find deploy -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -R .next/standalone deploy/app
+          mkdir -p deploy/app/.next
+          cp -R .next/static deploy/app/.next/static
+          cp -R public deploy/app/public
+          cp krystal/server.js krystal/package.json krystal/README.md deploy/
+          cp krystal/gitignore deploy/.gitignore
+          echo "${GITHUB_SHA}" > deploy/BUILD_COMMIT
+          # Nested .gitignore files from packages must not hide built files.
+          find deploy/app -name .gitignore -delete
+
+      - name: Commit and push
+        run: |
+          cd deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git commit --quiet -m "Build of ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}"
+          git push --quiet \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:krystal-build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
