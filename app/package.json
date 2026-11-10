@@ -1,0 +1,21 @@
+{
+  "name": "tuesday-murder-club",
+  "version": "0.2.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "import-supabase-csv": "node scripts/supabase-csv-to-mysql.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "latest",
+    "mysql2": "^3",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  }
+}

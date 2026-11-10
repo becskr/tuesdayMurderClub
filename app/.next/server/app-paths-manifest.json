@@ -1,0 +1,16 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/editor/route": "app/api/editor/route.js",
+  "/api/requests/[id]/route": "app/api/requests/[id]/route.js",
+  "/api/requests/route": "app/api/requests/route.js",
+  "/api/tmdb/details/route": "app/api/tmdb/details/route.js",
+  "/api/tmdb/enrichment/route": "app/api/tmdb/enrichment/route.js",
+  "/api/tmdb/providers/route": "app/api/tmdb/providers/route.js",
+  "/api/tmdb/search/route": "app/api/tmdb/search/route.js",
+  "/apple-icon.png/route": "app/apple-icon.png/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/icon.svg/route": "app/icon.svg/route.js",
+  "/page": "app/page.js",
+  "/view/page": "app/view/page.js"
+}

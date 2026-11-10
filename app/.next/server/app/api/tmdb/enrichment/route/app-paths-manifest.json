@@ -1,0 +1,3 @@
+{
+  "/api/tmdb/enrichment/route": "app/api/tmdb/enrichment/route.js"
+}
