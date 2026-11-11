@@ -19,6 +19,7 @@ A shared documentary watchlist for the club, built with Next.js, MySQL/MariaDB a
 - **Server routes:** `/api/requests` (list, add) and `/api/requests/[id]` (close, reopen, delete). Changes need the editor cookie, which `/api/editor` sets when the right passcode is entered.
 - **Database:** one MySQL table, `documentary_requests` (see `mysql/schema.sql`). The connection details only exist on the server.
 - **TMDB:** search, details, streaming and content-warning lookups go through `/api/tmdb/*` so the token stays on the server.
+- **Building:** Krystal's shared hosting can't build Next.js (its Linux is too old for the fast compiler, and the fallback runs out of memory). GitHub Actions builds the app on every push and commits a ready-to-run copy to the `krystal-build` branch, which is what Krystal runs. See `.github/workflows/krystal-build.yml`.
 
 ## Environment variables
 
@@ -34,6 +35,18 @@ Set these in cPanel → Setup Node.js App → your app → Environment variables
 | `EDIT_PASSCODE` | The club passcode. Changing it signs every device out. |
 
 Don't add `NODE_ENV` yourself: setting the app to Production mode in cPanel does that.
+
+If the app says a variable isn't set even though it's in Setup Node.js App (some cPanel servers don't pass them through), put them in a file called `.env` in the app folder on Krystal instead, one per line:
+
+```text
+EDIT_PASSCODE=your passcode
+DB_NAME=krystaluser_tmc
+DB_USER=krystaluser_tmc
+DB_PASSWORD=the database password
+TMDB_ACCESS_TOKEN=your TMDB token
+```
+
+Create it with File Manager (tick "Show Hidden Files" in Settings to see it afterwards), then create or re-save `tmp/restart.txt` in the app folder so the app restarts and reads it. Git ignores it, so it's never uploaded or overwritten.
 
 ## First-time setup on Krystal
 
@@ -61,31 +74,33 @@ cPanel → **Domains**: add the domain or subdomain the app will live on (e.g. `
 
 ### 4. Code
 
-cPanel → **Git Version Control** → **Create** → clone `https://github.com/becskr/tuesdayMurderClub.git` into a folder outside `public_html`, e.g. `tuesdayMurderClub`.
+1. Push to GitHub, then open the repo's **Actions** tab and wait for **Build for Krystal** to finish (a green tick, about 2 minutes). It creates the `krystal-build` branch.
+2. cPanel → **Git Version Control** → **Create** → clone `https://github.com/becskr/tuesdayMurderClub.git` into a folder outside `public_html`, e.g. `tuesdayMurderClub`.
+3. Open the repo in Git Version Control → **Basic Information** → set **Checked-Out Branch** to `krystal-build` → **Update**.
 
-If the code you want is on a branch other than `main`, open the repo in Git Version Control → **Basic Information** → **Checked-Out Branch**, pick it, and click **Update**.
+If git refuses because a file "would be overwritten" (cPanel creates a placeholder `server.js`), delete or rename that file in File Manager and try again.
 
 ### 5. Node.js app
 
-1. cPanel → **Setup Node.js App** → **Create Application**:
+1. cPanel → **Setup Node.js App** → **Create Application** (or edit the existing one):
    - Node.js version: the newest one offered (20 or later)
-   - Application mode: Production
+   - Application mode: **Production**
    - Application root: `tuesdayMurderClub`
    - Application URL: the domain from step 3
    - Application startup file: `server.js`
    - Environment variables: everything in the table above
-2. Click **Create**, then **Run NPM Install** and wait for it to finish.
-3. Click **Run JS Script**, type `build` and confirm. This takes a few minutes. It builds with Webpack because the server's Linux is too old for Next.js's faster Turbopack builder.
-4. Click **Restart**. Open the site and check that the list loads, the passcode unlocks editing, and you can add and close a case.
+2. Click **Save** (or **Create**), then **Restart**. There's no need to run NPM Install or a build: everything is already in the `app` folder.
+3. Open the site and check that the list loads, the passcode unlocks editing, and you can add and close a case.
 
 ## Updating the live site
 
-Push to GitHub as usual, then in cPanel:
+1. Push to GitHub and wait for **Build for Krystal** to finish in the repo's **Actions** tab.
+2. cPanel → **Git Version Control** → the repo → **Pull or Deploy** → **Update from Remote**.
+3. Wait about a minute, then reload the site. `/api/status` should show the new `build` and a recent `startedAt`.
 
-1. **Git Version Control** → the repo → **Pull or Deploy** → **Update from Remote**.
-2. **Setup Node.js App** → the app → **Run NPM Install**, then **Run JS Script** with `build`, then **Restart**.
+You don't need to press Restart. On Krystal it doesn't stop the running Next.js process (it shows as `next-server`), so `server.js` watches for a new `BUILD_COMMIT` and restarts the app itself within a minute of an update. To force a restart without a new build, create or re-save `tmp/restart.txt` in the app folder.
 
-If SSH is switched on (Krystal Client Area → My Products & Services → your package → Enable SSH; port 722), `scripts/deploy.sh` does all of this in one go after you run the `source …/activate` command shown on the app's page.
+`/api/status` shows the running build, when it started, whether `.env` was read, and which settings are set (never their values).
 
 ## Running locally
 
@@ -98,8 +113,9 @@ npm run dev
 
 ## Troubleshooting
 
-- **Site shows a Passenger or 503 error:** check the log file set in Setup Node.js App, make sure the `build` script finished, then Restart.
-- **"Turbopack is not supported on this platform":** the build script must be `next build --webpack` (it is in `package.json`). Asking Krystal to move the account to a CloudLinux 8 server would also fix it, and makes builds faster.
+- **Site still shows the old version a few minutes after updating:** check `/api/status`. If `build` hasn't changed, make sure `BUILD_COMMIT` in the app folder has. If it has and the app still hasn't restarted, an old `next-server` process is stuck: with SSH or Terminal, run `pkill -f next-server`, or ask Krystal support to stop it.
+- **Site shows a Passenger or 503 error:** check the log file set in Setup Node.js App. Make sure the checked-out branch is `krystal-build` and the startup file is `server.js`, then Restart.
 - **"Could not load the case files":** the database variables are wrong or the user isn't added to the database.
-- **Build stops with "Killed" or out of memory:** shared hosting caps memory per account. Try again when the site is quiet, or ask Krystal support whether the limit can be raised for the build.
+- **No `krystal-build` branch, or it's out of date:** check the **Actions** tab on GitHub for a failed run and open it to see why.
+- **Don't build on Krystal.** "Turbopack is not supported", `spawn … EAGAIN`, `std::bad_alloc` and `useContext` errors all came from trying. GitHub builds it instead.
 - **Krystal's Node.js support** covers the Node service itself, not app code, and Krystal recommends a VPS for heavy production Node apps. This app is small, but if it outgrows shared hosting, the same setup works on a VPS.

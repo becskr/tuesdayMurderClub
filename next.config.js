@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
   poweredByHeader: false,
+  // Bundle the app with only the packages it needs, so GitHub can build it
+  // and Krystal can run it without installing or building anything.
+  output: 'standalone',
   async headers() {
     return [
       {
