@@ -46,7 +46,7 @@ DB_PASSWORD=the database password
 TMDB_ACCESS_TOKEN=your TMDB token
 ```
 
-Create it with File Manager (tick "Show Hidden Files" in Settings to see it afterwards), then Restart the app. Git ignores it, so it's never uploaded or overwritten.
+Create it with File Manager (tick "Show Hidden Files" in Settings to see it afterwards), then create or re-save `tmp/restart.txt` in the app folder so the app restarts and reads it. Git ignores it, so it's never uploaded or overwritten.
 
 ## First-time setup on Krystal
 
@@ -96,9 +96,11 @@ If git refuses because a file "would be overwritten" (cPanel creates a placehold
 
 1. Push to GitHub and wait for **Build for Krystal** to finish in the repo's **Actions** tab.
 2. cPanel → **Git Version Control** → the repo → **Pull or Deploy** → **Update from Remote**.
-3. cPanel → **Setup Node.js App** → **Restart**.
+3. Wait about a minute, then reload the site. `/api/status` should show the new `build` and a recent `startedAt`.
 
-`BUILD_COMMIT` in the app folder shows which commit is live.
+You don't need to press Restart. On Krystal it doesn't stop the running Next.js process (it shows as `next-server`), so `server.js` watches for a new `BUILD_COMMIT` and restarts the app itself within a minute of an update. To force a restart without a new build, create or re-save `tmp/restart.txt` in the app folder.
+
+`/api/status` shows the running build, when it started, whether `.env` was read, and which settings are set (never their values).
 
 ## Running locally
 
@@ -111,6 +113,7 @@ npm run dev
 
 ## Troubleshooting
 
+- **Site still shows the old version a few minutes after updating:** check `/api/status`. If `build` hasn't changed, make sure `BUILD_COMMIT` in the app folder has. If it has and the app still hasn't restarted, an old `next-server` process is stuck: with SSH or Terminal, run `pkill -f next-server`, or ask Krystal support to stop it.
 - **Site shows a Passenger or 503 error:** check the log file set in Setup Node.js App. Make sure the checked-out branch is `krystal-build` and the startup file is `server.js`, then Restart.
 - **"Could not load the case files":** the database variables are wrong or the user isn't added to the database.
 - **No `krystal-build` branch, or it's out of date:** check the **Actions** tab on GitHub for a failed run and open it to see why.
